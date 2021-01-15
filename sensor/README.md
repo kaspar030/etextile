@@ -20,11 +20,16 @@ follows:
 
 - clone RIOT:
 
+    # for circuit playground bluefruit (needs a branch):
     git clone https://github.com/kaspar030/RIOT -b add_circuit_playground_bluefruit
+
+    # for itsybitsy:
+    git clone https://github.com/RIOT-OS/RIOT
 
 - build:
 
-    BOARD=foo make clean all flash -j8
+    # (leave out BOARD=... for circuit playground bluefruit)
+    BOARD=adafruit-itsybitsy-nrf52 make clean all flash -j8
 
 
 # update bootloader of the bluefruit (might be necessary)
