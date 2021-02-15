@@ -29,7 +29,14 @@
 #include "periph/adc.h"
 #define ADC_RES             ADC_RES_10BIT
 
+#if defined(BOARD_CIRCUITPLAYGROUND_BLUEFRUIT)
 static const adc_t adc_lines[] = { 0, 5, 1, 2, 3, 6 };
+#elif defined(BOARD_ADAFRUIT_ITSYBITSY_NRF52)
+static const adc_t adc_lines[] = { 2, 6, 4, 7, 0, 1 };
+#else
+#error Please set ADC pin mapping!
+#endif
+
 static const unsigned adc_lines_numof = ARRAY_SIZE(adc_lines);
 
 static const char *_device_name = "RIOT eTextile Sensor";
@@ -51,7 +58,7 @@ static uint16_t _conn_handle;
 static uint16_t _etextile_val_handle;
 
 static int _etextile_handler(uint16_t conn_handle, uint16_t attr_handle,
-                        struct ble_gatt_access_ctxt *ctxt, void *arg);
+                             struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 static int _devinfo_handler(uint16_t conn_handle, uint16_t attr_handle,
                             struct ble_gatt_access_ctxt *ctxt, void *arg);
@@ -70,57 +77,91 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = BLE_UUID16_DECLARE(BLE_GATT_SVC_ETEXTILE),
         .characteristics = (struct ble_gatt_chr_def[]) { {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_ETEXTILE_SENSOR_MEASURE),
-            .access_cb = _etextile_handler,
-            .val_handle = &_etextile_val_handle,
-            .flags = BLE_GATT_CHR_F_NOTIFY,
-        }, {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_BODY_SENSE_LOC),
-            .access_cb = _etextile_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            0, /* no more characteristics in this service */
-        }, }
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_ETEXTILE_SENSOR_MEASURE),
+                                                             .access_cb =
+                                                                 _etextile_handler,
+                                                             .val_handle =
+                                                                 &
+                                                                 _etextile_val_handle,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_NOTIFY,
+                                                         }, {
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_BODY_SENSE_LOC),
+                                                             .access_cb =
+                                                                 _etextile_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             0, /* no more characteristics in this service */
+                                                         }, }
     },
     {
         /* Device Information Service */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = BLE_UUID16_DECLARE(BLE_GATT_SVC_DEVINFO),
         .characteristics = (struct ble_gatt_chr_def[]) { {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_MANUFACTURER_NAME),
-            .access_cb = _devinfo_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_MODEL_NUMBER_STR),
-            .access_cb = _devinfo_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_SERIAL_NUMBER_STR),
-            .access_cb = _devinfo_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_FW_REV_STR),
-            .access_cb = _devinfo_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_HW_REV_STR),
-            .access_cb = _devinfo_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            0, /* no more characteristics in this service */
-        }, }
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_MANUFACTURER_NAME),
+                                                             .access_cb =
+                                                                 _devinfo_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_MODEL_NUMBER_STR),
+                                                             .access_cb =
+                                                                 _devinfo_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_SERIAL_NUMBER_STR),
+                                                             .access_cb =
+                                                                 _devinfo_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_FW_REV_STR),
+                                                             .access_cb =
+                                                                 _devinfo_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_HW_REV_STR),
+                                                             .access_cb =
+                                                                 _devinfo_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             0, /* no more characteristics in this service */
+                                                         }, }
     },
     {
         /* Battery Level Service */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = BLE_UUID16_DECLARE(BLE_GATT_SVC_BAS),
         .characteristics = (struct ble_gatt_chr_def[]) { {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_BATTERY_LEVEL),
-            .access_cb = _bas_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            0, /* no more characteristics in this service */
-        }, }
+                                                             .uuid =
+                                                                 BLE_UUID16_DECLARE(
+                                                                     BLE_GATT_CHAR_BATTERY_LEVEL),
+                                                             .access_cb =
+                                                                 _bas_handler,
+                                                             .flags =
+                                                                 BLE_GATT_CHR_F_READ,
+                                                         }, {
+                                                             0, /* no more characteristics in this service */
+                                                         }, }
     },
     {
         0, /* no more services */
@@ -128,7 +169,7 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
 };
 
 static int _etextile_handler(uint16_t conn_handle, uint16_t attr_handle,
-                        struct ble_gatt_access_ctxt *ctxt, void *arg)
+                             struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     (void)conn_handle;
     (void)attr_handle;
@@ -142,6 +183,7 @@ static int _etextile_handler(uint16_t conn_handle, uint16_t attr_handle,
 
     uint8_t loc = SENSOR_LOCATION;
     int res = os_mbuf_append(ctxt->om, &loc, sizeof(loc));
+
     return (res == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
 
@@ -179,6 +221,7 @@ static int _devinfo_handler(uint16_t conn_handle, uint16_t attr_handle,
     }
 
     int res = os_mbuf_append(ctxt->om, str, strlen(str));
+
     return (res == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
 
@@ -193,6 +236,7 @@ static int _bas_handler(uint16_t conn_handle, uint16_t attr_handle,
 
     uint8_t level = BAT_LEVEL;  /* this battery will never drain :-) */
     int res = os_mbuf_append(ctxt->om, &level, sizeof(level));
+
     return (res == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
 
@@ -238,8 +282,8 @@ static void _start_advertising(void)
     memset(&advp, 0, sizeof advp);
     advp.conn_mode = BLE_GAP_CONN_MODE_UND;
     advp.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    advp.itvl_min  = BLE_GAP_ADV_FAST_INTERVAL1_MIN;
-    advp.itvl_max  = BLE_GAP_ADV_FAST_INTERVAL1_MAX;
+    advp.itvl_min = BLE_GAP_ADV_FAST_INTERVAL1_MIN;
+    advp.itvl_max = BLE_GAP_ADV_FAST_INTERVAL1_MAX;
     res = ble_gap_adv_start(nimble_riot_own_addr_type, NULL, BLE_HS_FOREVER,
                             &advp, gap_event_cb, NULL);
     assert(res == 0);
@@ -275,11 +319,13 @@ static void _sensor_update(event_t *e)
     /* send etextile sensor data notification to GATT client */
     om = ble_hs_mbuf_from_flat(&_etextile_data, sizeof(_etextile_data));
     if (om) {
-        int res = ble_gattc_notify_custom(_conn_handle, _etextile_val_handle, om);
+        int res =
+            ble_gattc_notify_custom(_conn_handle, _etextile_val_handle, om);
         if (res != 0) {
             printf("ble_gattc_notify_custom() res=%i\n", res);
         }
-    } else {
+    }
+    else {
         printf("ble_hs_mbuf_from_flat() allocation failed\n");
     }
 
@@ -305,6 +351,7 @@ int main(void)
     puts("RIOT eTextile sensor");
 
     int res = 0;
+
     (void)res;
 
     _sensors_init();
@@ -328,9 +375,12 @@ int main(void)
     /* configure and set the advertising data */
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
     bluetil_ad_t ad;
+
     bluetil_ad_init_with_flags(&ad, buf, sizeof(buf), BLUETIL_AD_FLAGS_DEFAULT);
     uint16_t etextile_uuid = BLE_GATT_SVC_HRS;
-    bluetil_ad_add(&ad, BLE_GAP_AD_UUID16_INCOMP, &etextile_uuid, sizeof(etextile_uuid));
+
+    bluetil_ad_add(&ad, BLE_GAP_AD_UUID16_INCOMP, &etextile_uuid,
+                   sizeof(etextile_uuid));
     bluetil_ad_add_name(&ad, _device_name);
     ble_gap_adv_set_data(ad.buf, ad.pos);
 
